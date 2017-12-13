@@ -640,7 +640,7 @@ class ProgrammingAssignmentThree():
         objSentencesNumbers = self.numberOfTheSentenceInSnippetWhereObjIsPresent(jsonObject)
 
         if(subSentencesNumbers == [] or objSentencesNumbers == []):
-            return 0
+            return -1
         else:
             for number in subSentencesNumbers:
                 if(number in objSentencesNumbers):
