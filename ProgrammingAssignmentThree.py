@@ -15,11 +15,11 @@ from subject_object_extraction import findSVOs
 from demjson import decode
 import nltk
 import subject_object_extraction as soe
-from stanfordcorenlp import StanfordCoreNLP
+#from stanfordcorenlp import StanfordCoreNLP
 import math
 import jsonrpc
 from simplejson import loads
-import stanford_corenlp_pywrapper
+#import stanford_corenlp_pywrapper
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
 
@@ -33,7 +33,7 @@ class ProgrammingAssignmentThree():
     negativeElementsResolved = [] #No more ids
     positiveAndNegativeExamples = {} #Keep in this dictionary positive and negative examples, {JSON OBJECT:"yes"}, {JSON OBJECT: "no"}
     parser = spacy.en.English()
-    scnlp = StanfordCoreNLP(r'C:\Users\amosn\PycharmProjects\ProgrammingAssignment3_new\relevant_resources\stanford-corenlp-full-2016-10-31', lang='en')
+    #scnlp = StanfordCoreNLP(r'/media/sf_PA3/ProgrammingAssignmentThree-master/relevant_resources/stanford-corenlp', lang='en')
 
     """
     Constructor
@@ -43,7 +43,7 @@ class ProgrammingAssignmentThree():
     def __init__(self, filePath=""):
 
 
-        self.file = open("relevant_resources\\"+filePath, "r", encoding="utf-8")
+        self.file = open("relevant_resources/"+filePath, "r", encoding="utf-8")
         #For debug purposes
         #print(str(self.file.read()))
 
@@ -304,7 +304,7 @@ class ProgrammingAssignmentThree():
         for element in readFile:
             list = decode(element, encoding="utf-8")
             #with this we also solve the not yet resolved IDs (that couldn't be found by Google Knowledge Graph)
-            if('/m/' not in list['sub'] and '/m/' not in list['obj']):
+            if('/m/' in list['sub'] and '/m/' in list['obj']):
                 featuresExtracted = self.featureExtraction(list['evidences'][0]['snippet'])
                 listOfSentencesAndTheirFeatures = []
                 for key, value in featuresExtracted.items():
@@ -312,7 +312,6 @@ class ProgrammingAssignmentThree():
                     for k,v in value.items():
                         featuresList.append(json.dumps({str(k):str(v)}))
                     listOfSentencesAndTheirFeatures.append(json.dumps({'sentence':str(key), 'features':featuresList}))
-
                 toWrite = json.dumps({'pred':list['pred'],
                                       'sub':list['sub'],
                                       'obj':list['obj'],
@@ -320,6 +319,41 @@ class ProgrammingAssignmentThree():
                                       'judgments':list['judgments'],
                                       'nlp':json.dumps(listOfSentencesAndTheirFeatures)})
                 writeFile.write(toWrite+"\n")
+
+"""
+Create a weka input file for now to test classifiers. 
+"""
+
+    def documentFeatureExtraction2(self, path):
+        readFile = open(path, "r", encoding='utf-8')
+        writeFile = open(path.replace(".json","")+"_features_extracted.json", "a", encoding='utf-8')
+        writeFile2 = open('relevant_resources/weka.arff', 'a')
+        rows = []
+        for element in readFile:
+            list = decode(element, encoding="utf-8")
+            features = dict()
+            feature_list = []
+            #with this we also solve the not yet resolved IDs (that couldn't be found by Google Knowledge Graph)
+            if('/m/' in list['sub'] and '/m/' in list['obj']):
+                features['isNameInUrl'] = self.isNameInUrl(element)
+                feature_list.append(features['isNameInUrl'])
+                features['subInText'] = self.subInText(element)
+                feature_list.append(features['subInText'])
+                features['objInText'] = self.objInText(element)
+                feature_list.append(features['objInText'])
+                features['numberOfTheSentenceInSnippetWhereSubIsPresent'] = self.numberOfTheSentenceInSnippetWhereSubIsPresent(element)
+                feature_list.append(features['numberOfTheSentenceInSnippetWhereSubIsPresent'])
+                features['numberOfTheSentenceInSnippetWhereObjIsPresent'] = self.numberOfTheSentenceInSnippetWhereObjIsPresent(element)
+                feature_list.append(features['numberOfTheSentenceInSnippetWhereObjIsPresent'])
+                features['numberOfSentences'] = self.getNumberOfSentences(list['evidences'][0]['snippet'])
+                feature_list.append(features['numberOfSentences'])
+                if list in self.negativeExamples:
+                    feature_list.append(False)
+                else:
+                    feature_list.append(True)
+                feature_list = [str(f) for f in feature_list]
+                writeFile2.write(','.join(feature_list) + '\n')
+                
 
     """
     Check if the URL name (after wikipedia.com/Name_Surname) is part of the 'sub'
@@ -366,7 +400,7 @@ class ProgrammingAssignmentThree():
             if(name in snippet):
                 found = True
 
-        if(found == True):
+        if found:
             return 1
         else:
             return 0
@@ -388,7 +422,7 @@ class ProgrammingAssignmentThree():
             if(element in snippet):
                 found = True
 
-        if(found == True):
+        if found:
             return 1
         else:
             return 0
@@ -407,7 +441,7 @@ class ProgrammingAssignmentThree():
             if (name in snippet):
                 found = True
 
-        if (found == True):
+        if found:
             return 1
         else:
             return 0
@@ -426,7 +460,7 @@ class ProgrammingAssignmentThree():
             if (name in snippet):
                 found = True
 
-        if (found == True):
+        if found:
             return 1
         else:
             return 0
@@ -455,7 +489,7 @@ class ProgrammingAssignmentThree():
                     break
 
 
-        if (found == True):
+        if found:
             return numbersToReturn
         else:
             return -1
@@ -483,7 +517,7 @@ class ProgrammingAssignmentThree():
                     break
 
 
-        if (found == True):
+        if found:
             return numbersToReturn
         else:
             return -1
@@ -526,7 +560,7 @@ class ProgrammingAssignmentThree():
         return soe.findSVs(self.parser(sentence))
 
     """
-    Verify is the subject and the object are in a direct relationship withing a sentence
+    Verify is the subject and the object are in a direct relationship within a sentence
     """
     def isTheSubjectInADirectRelationshipWithTheObject(self,subject, object, sentence):
 
@@ -695,7 +729,9 @@ class ProgrammingAssignmentThree():
 
 test = ProgrammingAssignmentThree("20130403-place_of_birth.json")
 #test.queryGoogleKnowledgeGraph("/m/02v_brk")
-#test.sortExamples()
+test.sortExamples()
+test.documentFeatureExtraction2('relevant_resources/20130403-place_of_birth.json')
+
 #test.idToName()
 #test.reviewTheSet("negative_examples_place_nornalized.json")
 # print(test.partOfSpeechTagging("Lacourse graduated from St. Mary Academy - Bay View in 2004 and went on to study nursing at Rhode Island College where she will graduate in 2008"))
@@ -704,8 +740,10 @@ test = ProgrammingAssignmentThree("20130403-place_of_birth.json")
 # print(test.getEntities("Lacourse graduated from St. Mary Academy - Bay View in 2004 and went on to study nursing at Rhode Island College where she will graduate in 2008"))
 # print(test.subjectObjectExtraction("Lacourse graduated from St. Mary Academy - Bay View in 2004 and went on to study nursing at Rhode Island College where she will graduate in 2008"))
 #test.documentFeatureExtraction('relevant_resources/positive_examples_place_of_birth_nornalized.json')
-print(test.nlp("Bourgelat was born at Lyon."))
-print(test.featureExtraction("Bourgelat was born at Lyon."))
+#print(test.nlp("Bourgelat was born at Lyon."))
+#print(test.featureExtraction("Bourgelat was born at Lyon."))
+
+"""
 print("Status for subject: " + str(test.subInText("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}")))
 print("Status for object: " + str(test.objInText("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}")))
 print("Status for name in URL: " + str(test.isNameInUrl("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}")))
@@ -716,6 +754,9 @@ print(test.analyzeParseTree("He was the founder of veterinary colleges at Lyon i
 print(test.numberOfTheSentenceInSnippetWhereSubIsPresent("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761. Bourgelat was born at Lyon.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"))
 print(test.numberOfTheSentenceInSnippetWhereObjIsPresent("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761. Bourgelat was born at Lyon.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"))
 print(test.ldrHeuristic("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761. Bourgelat was born at Lyo.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"))
+"""
+
+
 # print(test.getNamedEntities('Bourgelat was born at Lyon.'))
 # print(test.getConstituencyParsing('Bourgelat was born at Lyon.'))
 # print(test.getDependencyParsing('Bourgelat was born at Lyon.'))
