@@ -32,7 +32,7 @@ class ProgrammingAssignmentThree():
     positiveElementsResolved = [] #No more ids
     negativeElementsResolved = [] #No more ids
     positiveAndNegativeExamples = {} #Keep in this dictionary positive and negative examples, {JSON OBJECT:"yes"}, {JSON OBJECT: "no"}
-    parser = spacy.en.English()
+    parser = spacy.load('en_core_web_sm')
     #scnlp = StanfordCoreNLP(r'/media/sf_PA3/ProgrammingAssignmentThree-master/relevant_resources/stanford-corenlp', lang='en')
 
     """
@@ -324,7 +324,7 @@ class ProgrammingAssignmentThree():
     def documentFeatureExtraction2(self, path):
         readFile = open(path, "r", encoding='utf-8')
         writeFile = open(path.replace(".json","")+"_features_extracted.json", "a", encoding='utf-8')
-        writeFile2 = open('relevant_resources/weka.arff', 'a')
+        writeFile2 = open('relevant_resources/negative_examples_place_nornalized.arff', 'a')
         rows = []
         for element in readFile:
             list = decode(element, encoding="utf-8")
@@ -646,7 +646,85 @@ class ProgrammingAssignmentThree():
     def getDependencyParsing(self, sentence):
         return self.scnlp.dependency_parse(sentence)
 
+    """
+    Distance (in words) between sub and obj if they are in the same sentence
+    """
+    def subObjDistance(self, sentence, sub, obj):
 
+        distance = 0
+        if(self.isTheSubjectInADirectRelationshipWithTheObject(sub, obj, sentence)):
+            sentenceList = sentence.split()
+            subIndex = sentenceList.index(sub)
+            objIndex = sentenceList.index(obj)
+
+            if(subIndex > objIndex):
+                distance = subIndex - objIndex
+            else:
+                distance = objIndex - subIndex
+
+        return distance
+
+    """
+    window defined
+    returns the -window/2 words and +window/2 words of sub
+    """
+    def windowDefinedSub(self, sentence, sub, window):
+        sentenceList = sentence.split()
+
+        subIndex = sentenceList.index(sub)
+        returnList = []
+
+        for i in range(0, window/2):
+            try:
+                if(sentenceList[i] != sub):
+                    returnList.append(sentenceList[i])
+            except Exception as e:
+                pass
+        for i in range(window/2+1, window):
+            try:
+                if(sentenceList[i] != sub):
+                    returnList.append(sentenceList[i])
+            except Exception as e:
+                pass
+
+        return returnList
+
+    """
+    check if the obj is in the sub window
+    """
+    def isObjInSubWindow(self):
+        pass
+
+    """
+    window defined
+    returns the -window/2 words and +window/2 words of obj
+    """
+    def windowFiveObj(self, sentence, obj, window):
+        sentenceList = sentence.split()
+
+        subIndex = sentenceList.index(obj)
+        returnList = []
+
+        for i in range(0, window / 2):
+            try:
+                if (sentenceList[i] != obj):
+                    returnList.append(sentenceList[i])
+            except Exception as e:
+                pass
+        for i in range(window / 2 + 1, window):
+            try:
+                if (sentenceList[i] != obj):
+                    returnList.append(sentenceList[i])
+            except Exception as e:
+                pass
+
+        return returnList
+
+    """
+    check if the obj is in the sub window
+    """
+    def isSubInObjWindow(self):
+        pass
 
     """
     Returns the number of sentences of a text snippet
@@ -687,7 +765,7 @@ class ProgrammingAssignmentThree():
         else:
             distance = objSentencesNumbers[0] - subSentencesNumbers[0]
 
-        return math.log(1/distance, 10)
+        return math.log(distance, 10)
 
 
 
@@ -731,7 +809,7 @@ class ProgrammingAssignmentThree():
 test = ProgrammingAssignmentThree("20130403-institution.json")
 #test.queryGoogleKnowledgeGraph("/m/02v_brk")
 #test.sortExamples()
-test.documentFeatureExtraction2('relevant_resources/positive_examples_institution_nornalized.json')
+test.documentFeatureExtraction2('relevant_resources/negative_examples_place_nornalized.json')
 
 #test.idToName()
 #test.reviewTheSet("negative_examples_place_nornalized.json")
