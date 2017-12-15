@@ -727,6 +727,13 @@ class ProgrammingAssignmentThree():
         pass
 
     """
+    Get Snippet size
+    """
+    def getSnippetSize(self, snippet):
+        return len(str(snippet).split())
+
+
+    """
     Returns the number of sentences of a text snippet
     """
     def getNumberOfSentences(self, snippet):
