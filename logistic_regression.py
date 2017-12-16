@@ -42,8 +42,22 @@ data.columns = feature_names#adding column titles (every attribute from the arff
 X = data.drop('class', axis=1)#features (a.k.a. "X")
 Y = data['class']#labels (a.k.a. "Y")
 
-X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split(X, Y, test_size = 0.1)
+overall_accuracy = 0
+for i in range(10):
+    X_train, X_test, Y_train, Y_test = sklearn.model_selection.train_test_split(X, Y, test_size = 0.1)
+    clf = LogisticRegression()
+    clf.fit(X_train, Y_train)
+    #inspiration from: http://scikit-learn.org/stable/modules/model_evaluation.html#confusion-matrix
+    y_true = Y_test
+    y_pred = clf.predict(X_test)
+    tn, fp, fn, tp = sklearn.metrics.confusion_matrix(y_true, y_pred).ravel()
+    print('Confusion matrix for fold', i + 1)
+    print(tp, '\t', fp, '\n', fp, '\t', tn)
+    accuracy = (tp + tn) / (tn + fp + fn + tp)
+    print('Accuracy:', str(round((accuracy * 100),3)) + '%') 
+    print(100 * '*')
+    overall_accuracy += accuracy
+    
+print('Average accuracy:', str(round((overall_accuracy*10),3)) + '%')
+    
 
-clf = LogisticRegression()
-scores = sklearn.model_selection.cross_val_score(clf, X, Y, cv=10)
-print(scores.mean())
