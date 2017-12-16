@@ -1068,5 +1068,6 @@ print(test.getShortestPath(jsn))
 #print(test.getAnnotation('Bourgelat was born at Lyon.'))
 
 
+
 #For debug purposes
 #test.normalizeDocuments("positive_examples_institution.txt")
