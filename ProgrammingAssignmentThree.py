@@ -323,41 +323,47 @@ class ProgrammingAssignmentThree():
                                       'nlp':json.dumps(listOfSentencesAndTheirFeatures)})
                 writeFile.write(toWrite+"\n")
 
+        def documentFeatureExtraction2(self, path):
+            readFile = open(path, "r", encoding='utf-8')
+            writeFile = open(path.replace(".json", "") + "_features_extracted.json", "a", encoding='utf-8')
+            writeFile2 = open('relevant_resources/weka.arff', 'a')
+            rows = []
+            for element in readFile:
+                list = decode(element, encoding="utf-8")
+                features = dict()
+                feature_list = []
+                # with this we also solve the not yet resolved IDs (that couldn't be found by Google Knowledge Graph)
+                if ('/m/' not in list['sub'] and '/m/' not in list['obj']):
+                    features['isNameInUrl'] = self.isNameInUrl(element)
+                    feature_list.append(features['isNameInUrl'])
+                    features['subInText'] = self.subInText(element)
+                    feature_list.append(features['subInText'])
+                    features['objInText'] = self.objInText(element)
+                    feature_list.append(features['objInText'])
+                    features[
+                        'numberOfTheSentenceInSnippetWhereSubIsPresent'] = self.numberOfTheSentenceInSnippetWhereSubIsPresent(
+                        element)
+                    feature_list.append(features['numberOfTheSentenceInSnippetWhereSubIsPresent'][-1])
+                    features[
+                        'numberOfTheSentenceInSnippetWhereObjIsPresent'] = self.numberOfTheSentenceInSnippetWhereObjIsPresent(
+                        element)
+                    feature_list.append(features['numberOfTheSentenceInSnippetWhereObjIsPresent'][-1])
+                    features['numberOfSentences'] = self.getNumberOfSentences(list['evidences'][0]['snippet'])
+                    feature_list.append(features['numberOfSentences'])
+                    features[
+                        'isTheSubjectInADirectRelationshipWithTheObject'] = self.isTheSubjectInADirectRelationshipWithTheObject(
+                        list['sub'], list['obj'], list['evidences'][0]['snippet'])
+                    print(features['isTheSubjectInADirectRelationshipWithTheObject'])
+                    feature_list.append(features['isTheSubjectInADirectRelationshipWithTheObject'])
+                    '''if list in self.negativeExamples:
+                        feature_list.append(False)
+                    else:
+                        feature_list.append(True)'''
+                    feature_list.append(True)
+                    feature_list = [str(f) for f in feature_list]
 
-    def documentFeatureExtraction2(self, path):
-        readFile = open(path, "r", encoding='utf-8')
-        writeFile = open(path.replace(".json","")+"_features_extracted.json", "a", encoding='utf-8')
-        writeFile2 = open('relevant_resources/negative_examples_place_nornalized.arff', 'a')
-        rows = []
-        for element in readFile:
-            list = decode(element, encoding="utf-8")
-            features = dict()
-            feature_list = []
-            #with this we also solve the not yet resolved IDs (that couldn't be found by Google Knowledge Graph)
-            if('/m/' not in list['sub'] and '/m/' not in list['obj']):
-                features['isNameInUrl'] = self.isNameInUrl(element)
-                feature_list.append(features['isNameInUrl'])
-                features['subInText'] = self.subInText(element)
-                feature_list.append(features['subInText'])
-                features['objInText'] = self.objInText(element)
-                feature_list.append(features['objInText'])
-                features['numberOfTheSentenceInSnippetWhereSubIsPresent'] = self.numberOfTheSentenceInSnippetWhereSubIsPresent(element)
-                feature_list.append(features['numberOfTheSentenceInSnippetWhereSubIsPresent'][-1])
-                features['numberOfTheSentenceInSnippetWhereObjIsPresent'] = self.numberOfTheSentenceInSnippetWhereObjIsPresent(element)
-                feature_list.append(features['numberOfTheSentenceInSnippetWhereObjIsPresent'][-1])
-                features['numberOfSentences'] = self.getNumberOfSentences(list['evidences'][0]['snippet'])
-                feature_list.append(features['numberOfSentences'])
-                features['isTheSubjectInADirectRelationshipWithTheObject'] = self.isTheSubjectInADirectRelationshipWithTheObject(list['sub'], list['obj'], list['evidences'][0]['snippet'])
-                print(features['isTheSubjectInADirectRelationshipWithTheObject'])
-                feature_list.append(features['isTheSubjectInADirectRelationshipWithTheObject'])
-                '''if list in self.negativeExamples:
-                    feature_list.append(False)
-                else:
-                    feature_list.append(True)'''
-                feature_list.append(True)
-                feature_list = [str(f) for f in feature_list]
-                writeFile2.write(','.join(feature_list) + '\n')
-                
+                    writeFile2.write(','.join(feature_list) + '\n')
+
 
     """
     Check if the URL name (after wikipedia.com/Name_Surname) is part of the 'sub'
