@@ -887,6 +887,10 @@ class ProgrammingAssignmentThree():
         return 0
 
     #Download Stanford CoreNLP: https://stanfordnlp.github.io/CoreNLP/
+    #Unzip it
+    #cd to the directory
+    #run the java command below
+    #run the code
     #Start a Stanford CoreNLP server as follows:
     #java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port 9000 -timeout 50000
     aaa = StanfordCoreNLP('http://localhost')
