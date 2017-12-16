@@ -872,6 +872,22 @@ class ProgrammingAssignmentThree():
         return "You must specify either the snippet, or give the jsonObject"
 
     """
+    Returns 1 if the subj or an obj is in a window defined in one of the sentences of a text snippet
+    Returns -1 otherwise
+    """
+    def checkSnippetSentencesForAGivenWindow(self, jsn, window=0):
+        for sentence in self.getSentencesFromSnippet(test.getSnippet(jsn)):
+            # print(test.windowDefinedSub(sentence=sentence, sub=test.getSubject(jsn), window=window))
+            # print(test.windowDefinedObj(sentence=sentence, obj=test.getObject(jsn), window=window))
+            # print(test.isSubInObjWindow(test.getSubject(jsn), test.getObject(jsn), window, sentence))
+            # print(test.isObjInSubWindow(test.getSubject(jsn), test.getObject(jsn), window, sentence))
+            if(self.isSubInObjWindow(test.getSubject(jsn), test.getObject(jsn), window, sentence) == 1 or self.isObjInSubWindow(test.getSubject(jsn), test.getObject(jsn), window, sentence) == 1):
+                return 1
+        return 0
+
+
+
+    """
     If the subject of the sentence appears in the text snippet, it's the subject in a sentence, 
     and in the next sentence appears a PRON that is in a relationship with the object, than we might have a long distance?
     
@@ -938,16 +954,17 @@ print(test.ldrHeuristic("{'pred': '/people/person/place_of_birth', 'sub': 'Claud
 
 jsn = "{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"
 
-for sentence in test.getSentencesFromSnippet(test.getSnippet(jsn)):
-    print(test.windowDefinedSub(sentence=sentence, sub=test.getSubject(jsn), window=10))
-    print(test.windowDefinedObj(sentence=sentence, obj=test.getObject(jsn), window=10))
-    print(test.isSubInObjWindow(test.getSubject(jsn), test.getObject(jsn), 10, sentence))
-    print(test.isObjInSubWindow(test.getSubject(jsn), test.getObject(jsn), 10, sentence))
+# for sentence in test.getSentencesFromSnippet(test.getSnippet(jsn)):
+#     print(test.windowDefinedSub(sentence=sentence, sub=test.getSubject(jsn), window=10))
+#     print(test.windowDefinedObj(sentence=sentence, obj=test.getObject(jsn), window=10))
+#     print(test.isSubInObjWindow(test.getSubject(jsn), test.getObject(jsn), 10, sentence))
+#     print(test.isObjInSubWindow(test.getSubject(jsn), test.getObject(jsn), 10, sentence))
 
+print(test.checkSnippetSentencesForAGivenWindow(jsn, 30))
 
-print(test.getNamedEntities('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
-print(test.getConstituencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
-print(test.getDependencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+#print(test.getNamedEntities('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+#print(test.getConstituencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+#print(test.getDependencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
 #print(test.getAnnotation('Bourgelat was born at Lyon.'))
 
 
