@@ -6,6 +6,7 @@ import scipy as sp
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+from stanfordcorenlp import StanfordCoreNLP
 from numpy.random import normal
 from sklearn.metrics import zero_one_loss
 from sklearn.metrics import accuracy_score
@@ -22,6 +23,7 @@ from simplejson import loads
 #import stanford_corenlp_pywrapper
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
+import re
 
 class ProgrammingAssignmentThree():
 
@@ -33,7 +35,7 @@ class ProgrammingAssignmentThree():
     negativeElementsResolved = [] #No more ids
     positiveAndNegativeExamples = {} #Keep in this dictionary positive and negative examples, {JSON OBJECT:"yes"}, {JSON OBJECT: "no"}
     parser = spacy.load('en_core_web_sm')
-    #scnlp = StanfordCoreNLP(r'/media/sf_PA3/ProgrammingAssignmentThree-master/relevant_resources/stanford-corenlp', lang='en')
+    scnlp = StanfordCoreNLP(r'relevant_resources/stanford-corenlp-full-2016-10-31', lang='en')
 
     """
     Constructor
@@ -647,6 +649,12 @@ class ProgrammingAssignmentThree():
         return self.scnlp.dependency_parse(sentence)
 
     """
+    StanfordCoreNLP => get annotation
+    """
+    def getAnnotation(self, sentence):
+        return self.scnlp.annotate(sentence)
+
+    """
     Distance (in words) between sub and obj if they are in the same sentence
     """
     def subObjDistance(self, sentence, sub, obj):
@@ -669,67 +677,122 @@ class ProgrammingAssignmentThree():
     returns the -window/2 words and +window/2 words of sub
     """
     def windowDefinedSub(self, sentence, sub, window):
-        sentenceList = sentence.split()
+        sentenceList = re.findall(r"[\w]+", sentence)
+        subIndex = -1
+        #print(sub.split())
+        for name in sub.split():
+                if(name in sentence):
+                    subIndex = sentenceList.index(name)
 
-        subIndex = sentenceList.index(sub)
+        #print(subIndex)
+
         returnList = []
+        returnDict = {}
+        #left
+        for i in range((subIndex - int(window/2)), subIndex):
+            if(i>=0 and i<len(sentenceList)):
+                for name in sub.split():
+                    if(sentenceList[i] != name):
+                        returnList.append(sentenceList[i])
+        #right
+        for i in range(subIndex+1, (subIndex+int(window/2))):
+            if(i>=0 and i<len(sentenceList)):
+                for name in sub.split():
+                    if (sentenceList[i] != name):
+                        returnList.append(sentenceList[i])
 
-        for i in range(0, window/2):
-            try:
-                if(sentenceList[i] != sub):
-                    returnList.append(sentenceList[i])
-            except Exception as e:
-                pass
-        for i in range(window/2+1, window):
-            try:
-                if(sentenceList[i] != sub):
-                    returnList.append(sentenceList[i])
-            except Exception as e:
-                pass
+        for i in range(0, len(returnList)-1):
+            if(i<len(returnList)-1):
+                if(returnList[i] == returnList[i+1]):
+                    returnList.remove(returnList[i+1])
 
-        return returnList
+        returnDict = {"list": returnList, "window": window}
+        #print(returnDict)
+
+        return returnDict
 
     """
     check if the obj is in the sub window
     """
-    def isObjInSubWindow(self):
-        pass
+    def isObjInSubWindow(self, sub, obj, window, sentence):
+        dict = self.windowDefinedSub(sentence, sub, window)
+        objInThatWindow = False
+
+        for token in dict['list']:
+            for name in obj.split():
+                if(name == str(token)):
+                    objInThatWindow = True
+                    break
+
+        if objInThatWindow == True:
+            return 1
+        else:
+            return -1
+
 
     """
     window defined
-    returns the -window/2 words and +window/2 words of obj
+    returns the -window/2 words and +window/2 words of Object
     """
-    def windowFiveObj(self, sentence, obj, window):
-        sentenceList = sentence.split()
+    def windowDefinedObj(self, sentence, obj, window):
+        sentenceList = re.findall(r"[\w]+", sentence)
 
-        subIndex = sentenceList.index(obj)
+        subIndex = -1
+        # print(sub.split())
+        for name in obj.split():
+            if (name in sentence):
+                subIndex = sentenceList.index(name)
+
+        # print(subIndex)
+
         returnList = []
+        returnDict = {}
+        for i in range((subIndex - int(window / 2)), subIndex):
+            if (i >= 0 and i < len(sentenceList)):
+                for name in obj.split():
+                    if (sentenceList[i] != name):
+                        returnList.append(sentenceList[i])
+        #left
+        for i in range(subIndex + 1, (subIndex + int(window / 2))):
+            if (i >= 0 and i < len(sentenceList)):
+                for name in obj.split():
+                    if (sentenceList[i] != name):
+                        returnList.append(sentenceList[i])
+        #right
+        for i in range(0, len(returnList) - 1):
+            if (i < len(returnList) - 1):
+                if (returnList[i] == returnList[i + 1]):
+                    returnList.remove(returnList[i + 1])
 
-        for i in range(0, window / 2):
-            try:
-                if (sentenceList[i] != obj):
-                    returnList.append(sentenceList[i])
-            except Exception as e:
-                pass
-        for i in range(window / 2 + 1, window):
-            try:
-                if (sentenceList[i] != obj):
-                    returnList.append(sentenceList[i])
-            except Exception as e:
-                pass
+        returnDict = {"list": returnList, "window": window}
+        # print(returnDict)
 
-        return returnList
+        return returnDict
+
 
     """
     check if the obj is in the sub window
     """
-    def isSubInObjWindow(self):
-        pass
+    def isSubInObjWindow(self, sub, obj, window, sentence):
+        dict = self.windowDefinedObj(sentence, obj, window)
+        subInThatWindow = False
+
+        for token in dict['list']:
+            for name in sub.split():
+                if(name == str(token)):
+                    subInThatWindow = True
+                    break
+
+        if subInThatWindow == True:
+            return 1
+        else:
+            return -1
 
     """
-    Get Snippet size
+    Get Snippet size (in words)
     """
     def getSnippetSize(self, snippet):
+        print(str(snippet).split())
         return len(str(snippet).split())
 
 
@@ -774,9 +837,39 @@ class ProgrammingAssignmentThree():
 
         return math.log(distance, 10)
 
+    """
+    :returns 'sub' (the subject) of the JSON object given
+    """
+    def getSubject(self, jsonObject):
+        list = decode(jsonObject)
+        return list['sub']
 
+    """
+    :returns 'obj' (the object) of the JSON object given
+    """
+    def getObject(self, jsonObject):
+        list = decode(jsonObject)
+        return list['obj']
 
+    """
+    :returns 'snippet' (the text snippet) of the JSON object given
+    """
+    def getSnippet(self, jsonObject):
+        list = decode(jsonObject)
+        return list['evidences'][0]['snippet']
 
+    """
+    :returns the sentences of a text snippet
+    """
+    def getSentencesFromSnippet(self, snippet = "", jsonObj = ""):
+        if(jsonObj != ""):
+            list = decode(jsonObj)
+            return self.sentenceTokenizer(list['evidences'][0]['snippet'])
+
+        if(snippet != ""):
+            return self.sentenceTokenizer(snippet)
+
+        return "You must specify either the snippet, or give the jsonObject"
 
     """
     If the subject of the sentence appears in the text snippet, it's the subject in a sentence, 
@@ -816,7 +909,7 @@ class ProgrammingAssignmentThree():
 test = ProgrammingAssignmentThree("20130403-institution.json")
 #test.queryGoogleKnowledgeGraph("/m/02v_brk")
 #test.sortExamples()
-test.documentFeatureExtraction2('relevant_resources/negative_examples_place_nornalized.json')
+#test.documentFeatureExtraction2('relevant_resources/negative_examples_place_nornalized.json')
 
 #test.idToName()
 #test.reviewTheSet("negative_examples_place_nornalized.json")
@@ -843,9 +936,19 @@ print(test.ldrHeuristic("{'pred': '/people/person/place_of_birth', 'sub': 'Claud
 """
 
 
-# print(test.getNamedEntities('Bourgelat was born at Lyon.'))
-# print(test.getConstituencyParsing('Bourgelat was born at Lyon.'))
-# print(test.getDependencyParsing('Bourgelat was born at Lyon.'))
+jsn = "{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"
+
+for sentence in test.getSentencesFromSnippet(test.getSnippet(jsn)):
+    print(test.windowDefinedSub(sentence=sentence, sub=test.getSubject(jsn), window=10))
+    print(test.windowDefinedObj(sentence=sentence, obj=test.getObject(jsn), window=10))
+    print(test.isSubInObjWindow(test.getSubject(jsn), test.getObject(jsn), 10, sentence))
+    print(test.isObjInSubWindow(test.getSubject(jsn), test.getObject(jsn), 10, sentence))
+
+
+print(test.getNamedEntities('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+print(test.getConstituencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+print(test.getDependencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+#print(test.getAnnotation('Bourgelat was born at Lyon.'))
 
 
 #For debug purposes
