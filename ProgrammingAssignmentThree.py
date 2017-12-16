@@ -6,6 +6,7 @@ import scipy as sp
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+from stanfordcorenlp import StanfordCoreNLP
 from numpy.random import normal
 from sklearn.metrics import zero_one_loss
 from sklearn.metrics import accuracy_score
@@ -15,13 +16,15 @@ from subject_object_extraction import findSVOs
 from demjson import decode
 import nltk
 import subject_object_extraction as soe
-from stanfordcorenlp import StanfordCoreNLP
+#from stanfordcorenlp import StanfordCoreNLP
 import math
 import jsonrpc
 from simplejson import loads
-import stanford_corenlp_pywrapper
+#import stanford_corenlp_pywrapper
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
+import re
+import networkx as nx
 
 class ProgrammingAssignmentThree():
 
@@ -32,8 +35,8 @@ class ProgrammingAssignmentThree():
     positiveElementsResolved = [] #No more ids
     negativeElementsResolved = [] #No more ids
     positiveAndNegativeExamples = {} #Keep in this dictionary positive and negative examples, {JSON OBJECT:"yes"}, {JSON OBJECT: "no"}
-    parser = spacy.en.English()
-    scnlp = StanfordCoreNLP(r'C:\Users\amosn\PycharmProjects\ProgrammingAssignment3_new\relevant_resources\stanford-corenlp-full-2016-10-31', lang='en')
+    parser = spacy.load('en_core_web_sm')
+    scnlp = StanfordCoreNLP(r'relevant_resources/stanford-corenlp-full-2016-10-31', lang='en')
 
     """
     Constructor
@@ -43,7 +46,7 @@ class ProgrammingAssignmentThree():
     def __init__(self, filePath=""):
 
 
-        self.file = open("relevant_resources\\"+filePath, "r", encoding="utf-8")
+        self.file = open("relevant_resources/"+filePath, "r", encoding="utf-8")
         #For debug purposes
         #print(str(self.file.read()))
 
@@ -304,7 +307,7 @@ class ProgrammingAssignmentThree():
         for element in readFile:
             list = decode(element, encoding="utf-8")
             #with this we also solve the not yet resolved IDs (that couldn't be found by Google Knowledge Graph)
-            if('/m/' not in list['sub'] and '/m/' not in list['obj']):
+            if('/m/' in list['sub'] and '/m/' in list['obj']):
                 featuresExtracted = self.featureExtraction(list['evidences'][0]['snippet'])
                 listOfSentencesAndTheirFeatures = []
                 for key, value in featuresExtracted.items():
@@ -312,7 +315,6 @@ class ProgrammingAssignmentThree():
                     for k,v in value.items():
                         featuresList.append(json.dumps({str(k):str(v)}))
                     listOfSentencesAndTheirFeatures.append(json.dumps({'sentence':str(key), 'features':featuresList}))
-
                 toWrite = json.dumps({'pred':list['pred'],
                                       'sub':list['sub'],
                                       'obj':list['obj'],
@@ -320,6 +322,48 @@ class ProgrammingAssignmentThree():
                                       'judgments':list['judgments'],
                                       'nlp':json.dumps(listOfSentencesAndTheirFeatures)})
                 writeFile.write(toWrite+"\n")
+
+        def documentFeatureExtraction2(self, path):
+            readFile = open(path, "r", encoding='utf-8')
+            writeFile = open(path.replace(".json", "") + "_features_extracted.json", "a", encoding='utf-8')
+            writeFile2 = open('relevant_resources/weka.arff', 'a')
+            rows = []
+            for element in readFile:
+                list = decode(element, encoding="utf-8")
+                features = dict()
+                feature_list = []
+                # with this we also solve the not yet resolved IDs (that couldn't be found by Google Knowledge Graph)
+                if ('/m/' not in list['sub'] and '/m/' not in list['obj']):
+                    features['isNameInUrl'] = self.isNameInUrl(element)
+                    feature_list.append(features['isNameInUrl'])
+                    features['subInText'] = self.subInText(element)
+                    feature_list.append(features['subInText'])
+                    features['objInText'] = self.objInText(element)
+                    feature_list.append(features['objInText'])
+                    features[
+                        'numberOfTheSentenceInSnippetWhereSubIsPresent'] = self.numberOfTheSentenceInSnippetWhereSubIsPresent(
+                        element)
+                    feature_list.append(features['numberOfTheSentenceInSnippetWhereSubIsPresent'][-1])
+                    features[
+                        'numberOfTheSentenceInSnippetWhereObjIsPresent'] = self.numberOfTheSentenceInSnippetWhereObjIsPresent(
+                        element)
+                    feature_list.append(features['numberOfTheSentenceInSnippetWhereObjIsPresent'][-1])
+                    features['numberOfSentences'] = self.getNumberOfSentences(list['evidences'][0]['snippet'])
+                    feature_list.append(features['numberOfSentences'])
+                    features[
+                        'isTheSubjectInADirectRelationshipWithTheObject'] = self.isTheSubjectInADirectRelationshipWithTheObject(
+                        list['sub'], list['obj'], list['evidences'][0]['snippet'])
+                    print(features['isTheSubjectInADirectRelationshipWithTheObject'])
+                    feature_list.append(features['isTheSubjectInADirectRelationshipWithTheObject'])
+                    '''if list in self.negativeExamples:
+                        feature_list.append(False)
+                    else:
+                        feature_list.append(True)'''
+                    feature_list.append(True)
+                    feature_list = [str(f) for f in feature_list]
+
+                    writeFile2.write(','.join(feature_list) + '\n')
+
 
     """
     Check if the URL name (after wikipedia.com/Name_Surname) is part of the 'sub'
@@ -366,7 +410,7 @@ class ProgrammingAssignmentThree():
             if(name in snippet):
                 found = True
 
-        if(found == True):
+        if found:
             return 1
         else:
             return 0
@@ -388,7 +432,7 @@ class ProgrammingAssignmentThree():
             if(element in snippet):
                 found = True
 
-        if(found == True):
+        if found:
             return 1
         else:
             return 0
@@ -407,7 +451,7 @@ class ProgrammingAssignmentThree():
             if (name in snippet):
                 found = True
 
-        if (found == True):
+        if found:
             return 1
         else:
             return 0
@@ -426,7 +470,7 @@ class ProgrammingAssignmentThree():
             if (name in snippet):
                 found = True
 
-        if (found == True):
+        if found:
             return 1
         else:
             return 0
@@ -455,10 +499,10 @@ class ProgrammingAssignmentThree():
                     break
 
 
-        if (found == True):
+        if found:
             return numbersToReturn
         else:
-            return -1
+            return [-1]
 
     """
     :returns numbers Of The Sentences In Snippet Where Obj Is Present
@@ -483,10 +527,10 @@ class ProgrammingAssignmentThree():
                     break
 
 
-        if (found == True):
+        if found:
             return numbersToReturn
         else:
-            return -1
+            return [-1]
 
 
 
@@ -526,7 +570,7 @@ class ProgrammingAssignmentThree():
         return soe.findSVs(self.parser(sentence))
 
     """
-    Verify is the subject and the object are in a direct relationship withing a sentence
+    Verify is the subject and the object are in a direct relationship within a sentence
     """
     def isTheSubjectInADirectRelationshipWithTheObject(self,subject, object, sentence):
 
@@ -611,6 +655,152 @@ class ProgrammingAssignmentThree():
     def getDependencyParsing(self, sentence):
         return self.scnlp.dependency_parse(sentence)
 
+    """
+    StanfordCoreNLP => get annotation
+    """
+    def getAnnotation(self, sentence):
+        return self.scnlp.annotate(sentence)
+
+    """
+    Distance (in words) between sub and obj if they are in the same sentence
+    """
+    def subObjDistance(self, sentence, sub, obj):
+
+        distance = 0
+        if(self.isTheSubjectInADirectRelationshipWithTheObject(sub, obj, sentence)):
+            sentenceList = sentence.split()
+            subIndex = sentenceList.index(sub)
+            objIndex = sentenceList.index(obj)
+
+            if(subIndex > objIndex):
+                distance = subIndex - objIndex
+            else:
+                distance = objIndex - subIndex
+
+        return distance
+
+    """
+    window defined
+    returns the -window/2 words and +window/2 words of sub
+    """
+    def windowDefinedSub(self, sentence, sub, window):
+        sentenceList = re.findall(r"[\w]+", sentence)
+        subIndex = -1
+        #print(sub.split())
+        for name in sub.split():
+                if(name in sentence):
+                    subIndex = sentenceList.index(name)
+
+        #print(subIndex)
+
+        returnList = []
+        returnDict = {}
+        #left
+        for i in range((subIndex - int(window/2)), subIndex):
+            if(i>=0 and i<len(sentenceList)):
+                for name in sub.split():
+                    if(sentenceList[i] != name):
+                        returnList.append(sentenceList[i])
+        #right
+        for i in range(subIndex+1, (subIndex+int(window/2))):
+            if(i>=0 and i<len(sentenceList)):
+                for name in sub.split():
+                    if (sentenceList[i] != name):
+                        returnList.append(sentenceList[i])
+
+        for i in range(0, len(returnList)-1):
+            if(i<len(returnList)-1):
+                if(returnList[i] == returnList[i+1]):
+                    returnList.remove(returnList[i+1])
+
+        returnDict = {"list": returnList, "window": window}
+        #print(returnDict)
+
+        return returnDict
+
+    """
+    check if the obj is in the sub window
+    """
+    def isObjInSubWindow(self, sub, obj, window, sentence):
+        dict = self.windowDefinedSub(sentence, sub, window)
+        objInThatWindow = False
+
+        for token in dict['list']:
+            for name in obj.split():
+                if(name == str(token)):
+                    objInThatWindow = True
+                    break
+
+        if objInThatWindow == True:
+            return 1
+        else:
+            return -1
+
+
+    """
+    window defined
+    returns the -window/2 words and +window/2 words of Object
+    """
+    def windowDefinedObj(self, sentence, obj, window):
+        sentenceList = re.findall(r"[\w]+", sentence)
+
+        subIndex = -1
+        # print(sub.split())
+        for name in obj.split():
+            if (name in sentence):
+                subIndex = sentenceList.index(name)
+
+        # print(subIndex)
+
+        returnList = []
+        returnDict = {}
+        for i in range((subIndex - int(window / 2)), subIndex):
+            if (i >= 0 and i < len(sentenceList)):
+                for name in obj.split():
+                    if (sentenceList[i] != name):
+                        returnList.append(sentenceList[i])
+        #left
+        for i in range(subIndex + 1, (subIndex + int(window / 2))):
+            if (i >= 0 and i < len(sentenceList)):
+                for name in obj.split():
+                    if (sentenceList[i] != name):
+                        returnList.append(sentenceList[i])
+        #right
+        for i in range(0, len(returnList) - 1):
+            if (i < len(returnList) - 1):
+                if (returnList[i] == returnList[i + 1]):
+                    returnList.remove(returnList[i + 1])
+
+        returnDict = {"list": returnList, "window": window}
+        # print(returnDict)
+
+        return returnDict
+
+
+    """
+    check if the obj is in the sub window
+    """
+    def isSubInObjWindow(self, sub, obj, window, sentence):
+        dict = self.windowDefinedObj(sentence, obj, window)
+        subInThatWindow = False
+
+        for token in dict['list']:
+            for name in sub.split():
+                if(name == str(token)):
+                    subInThatWindow = True
+                    break
+
+        if subInThatWindow == True:
+            return 1
+        else:
+            return -1
+
+    """
+    Get Snippet size (in words)
+    """
+    def getSnippetSize(self, snippet):
+        print(str(snippet).split())
+        return len(str(snippet).split())
 
 
     """
@@ -652,12 +842,155 @@ class ProgrammingAssignmentThree():
         else:
             distance = objSentencesNumbers[0] - subSentencesNumbers[0]
 
-        return math.log(1/distance, 10)
+        return math.log(distance, 10)
 
+    """
+    :returns 'sub' (the subject) of the JSON object given
+    """
+    def getSubject(self, jsonObject):
+        list = decode(jsonObject)
+        return list['sub']
 
+    """
+    :returns 'obj' (the object) of the JSON object given
+    """
+    def getObject(self, jsonObject):
+        list = decode(jsonObject)
+        return list['obj']
 
+    """
+    :returns 'snippet' (the text snippet) of the JSON object given
+    """
+    def getSnippet(self, jsonObject):
+        list = decode(jsonObject)
+        return list['evidences'][0]['snippet']
 
+    """
+    :returns the sentences of a text snippet
+    """
+    def getSentencesFromSnippet(self, snippet = "", jsonObj = ""):
+        if(jsonObj != ""):
+            list = decode(jsonObj)
+            return self.sentenceTokenizer(list['evidences'][0]['snippet'])
 
+        if(snippet != ""):
+            return self.sentenceTokenizer(snippet)
+
+        return "You must specify either the snippet, or give the jsonObject"
+
+    """
+    Returns 1 if the subj or an obj is in a window defined in one of the sentences of a text snippet
+    Returns -1 otherwise
+    """
+    def checkSnippetSentencesForAGivenWindow(self, jsn, window=0):
+        for sentence in self.getSentencesFromSnippet(test.getSnippet(jsn)):
+            # print(test.windowDefinedSub(sentence=sentence, sub=test.getSubject(jsn), window=window))
+            # print(test.windowDefinedObj(sentence=sentence, obj=test.getObject(jsn), window=window))
+            # print(test.isSubInObjWindow(test.getSubject(jsn), test.getObject(jsn), window, sentence))
+            # print(test.isObjInSubWindow(test.getSubject(jsn), test.getObject(jsn), window, sentence))
+            if(self.isSubInObjWindow(test.getSubject(jsn), test.getObject(jsn), window, sentence) == 1 or self.isObjInSubWindow(test.getSubject(jsn), test.getObject(jsn), window, sentence) == 1):
+                return 1
+        return 0
+
+    #Download Stanford CoreNLP: https://stanfordnlp.github.io/CoreNLP/
+    #Unzip it
+    #cd to the directory
+    #run the java command below
+    #run the code
+    #Start a Stanford CoreNLP server as follows:
+    #java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port 9000 -timeout 50000
+    aaa = StanfordCoreNLP('http://localhost')
+
+    def get_stanford_annotations(self,text, port=9000,
+                                 annotators='tokenize,ssplit,pos,lemma,depparse,parse'):
+        output = self.aaa.annotate(text, properties={
+            "timeout": "10000",
+            "ssplit.newlineIsSentenceBreak": "two",
+            'annotators': annotators,
+            'outputFormat': 'json'
+        })
+        return output
+
+    """
+    Returns the shortest path between a subject and an object (Dependency tree parsing)
+    else returns -1
+    """
+    def getShortestPath(self, jsonObj):
+
+        list = decode(jsonObj)
+
+        sub = list['sub']
+        obj = list['obj']
+        snippet = list['evidences'][0]['snippet']
+        sentences = self.sentenceTokenizer(snippet)
+
+        objFoundInSnippet = False
+        subFoundInSnippet = False
+        shortestPath = -1
+        shortestPaths = []
+
+        if(self.subInText(jsonObj) == 0 or self.objInText(jsonObj) == 0):
+            return -1
+
+        for sentence in sentences:
+            try:
+                if(self.objInSentence(sentence,obj)==1):
+                    # The code expects the document to contains exactly one sentence.
+                    document = sentence
+                    #print('document: {0}'.format(document))
+
+                    # Parse the text
+                    annotations = self.get_stanford_annotations(document, port=9000,
+                                                           annotators='tokenize,ssplit,pos,lemma,depparse')
+                    list = decode(annotations)
+                    tokens = list['sentences'][0]['tokens']
+                    #print(tokens)
+
+                    # Load Stanford CoreNLP's dependency tree into a networkx graph
+                    edges = []
+                    dependencies = {}
+                    for edge in list['sentences'][0]['basicDependencies']:
+                        edges.append((edge['governor'], edge['dependent']))
+                        dependencies[(min(edge['governor'], edge['dependent']),
+                                      max(edge['governor'], edge['dependent']))] = edge
+
+                    graph = nx.Graph(edges)
+                    # pprint(dependencies)
+                    # print('edges: {0}'.format(edges))
+
+                    # Find the shortest path
+                    token1 = ['he', 'she', 'them', 'us'] #the subject
+                    for name in sub.split():
+                        token1.append(name.lower())
+                    token2 = [] #the object
+                    for name in obj.split():
+                        token2.append(name)
+                    for token in tokens:
+                        if(token['originalText'].lower() in token1):
+                            token1_index = token['index']
+                        elif(token['originalText'] in token1):
+                            token1_index = token['index']
+
+                        if token['originalText'] in token2:
+                            token2_index = token['index']
+
+                    path = nx.shortest_path(graph, source=token1_index, target=token2_index)
+                    #print('path: {0}'.format(path))
+                    shortestPaths.append(len(path))
+
+                    for token_id in path:
+                        token = tokens[token_id - 1]
+                        token_text = token['originalText']
+                        #print('Node {0}\ttoken_text: {1}'.format(token_id, token_text))
+            except Exception as e:
+                print(e)
+
+        if(len(shortestPaths) == 0):
+            shortestPath = -1
+        else:
+            shortestPath = min(shortestPaths)
+
+        return shortestPath
     """
     If the subject of the sentence appears in the text snippet, it's the subject in a sentence, 
     and in the next sentence appears a PRON that is in a relationship with the object, than we might have a long distance?
@@ -693,9 +1026,11 @@ class ProgrammingAssignmentThree():
         return 1.0 * (x >= 0)
 
 
-test = ProgrammingAssignmentThree("20130403-place_of_birth.json")
+test = ProgrammingAssignmentThree("20130403-institution.json")
 #test.queryGoogleKnowledgeGraph("/m/02v_brk")
 #test.sortExamples()
+#test.documentFeatureExtraction2('relevant_resources/negative_examples_place_nornalized.json')
+
 #test.idToName()
 #test.reviewTheSet("negative_examples_place_nornalized.json")
 # print(test.partOfSpeechTagging("Lacourse graduated from St. Mary Academy - Bay View in 2004 and went on to study nursing at Rhode Island College where she will graduate in 2008"))
@@ -704,8 +1039,10 @@ test = ProgrammingAssignmentThree("20130403-place_of_birth.json")
 # print(test.getEntities("Lacourse graduated from St. Mary Academy - Bay View in 2004 and went on to study nursing at Rhode Island College where she will graduate in 2008"))
 # print(test.subjectObjectExtraction("Lacourse graduated from St. Mary Academy - Bay View in 2004 and went on to study nursing at Rhode Island College where she will graduate in 2008"))
 #test.documentFeatureExtraction('relevant_resources/positive_examples_place_of_birth_nornalized.json')
-print(test.nlp("Bourgelat was born at Lyon."))
-print(test.featureExtraction("Bourgelat was born at Lyon."))
+#print(test.nlp("Bourgelat was born at Lyon."))
+#print(test.featureExtraction("Bourgelat was born at Lyon."))
+
+"""
 print("Status for subject: " + str(test.subInText("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}")))
 print("Status for object: " + str(test.objInText("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}")))
 print("Status for name in URL: " + str(test.isNameInUrl("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}")))
@@ -716,9 +1053,25 @@ print(test.analyzeParseTree("He was the founder of veterinary colleges at Lyon i
 print(test.numberOfTheSentenceInSnippetWhereSubIsPresent("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761. Bourgelat was born at Lyon.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"))
 print(test.numberOfTheSentenceInSnippetWhereObjIsPresent("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761. Bourgelat was born at Lyon.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"))
 print(test.ldrHeuristic("{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761. Bourgelat was born at Lyo.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"))
-# print(test.getNamedEntities('Bourgelat was born at Lyon.'))
-# print(test.getConstituencyParsing('Bourgelat was born at Lyon.'))
-# print(test.getDependencyParsing('Bourgelat was born at Lyon.'))
+"""
+
+
+jsn = "{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"
+
+# for sentence in test.getSentencesFromSnippet(test.getSnippet(jsn)):
+#     print(test.windowDefinedSub(sentence=sentence, sub=test.getSubject(jsn), window=10))
+#     print(test.windowDefinedObj(sentence=sentence, obj=test.getObject(jsn), window=10))
+#     print(test.isSubInObjWindow(test.getSubject(jsn), test.getObject(jsn), 10, sentence))
+#     print(test.isObjInSubWindow(test.getSubject(jsn), test.getObject(jsn), 10, sentence))
+
+print(test.checkSnippetSentencesForAGivenWindow(jsn, 30))
+print(test.getShortestPath(jsn))
+
+# print(test.getNamedEntities('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+# print(test.getConstituencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+# print(test.getDependencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+#print(test.getAnnotation('Bourgelat was born at Lyon.'))
+
 
 
 #For debug purposes
