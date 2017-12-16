@@ -24,6 +24,7 @@ from simplejson import loads
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
 import re
+import networkx as nx
 
 class ProgrammingAssignmentThree():
 
@@ -885,8 +886,101 @@ class ProgrammingAssignmentThree():
                 return 1
         return 0
 
+    #Download Stanford CoreNLP: https://stanfordnlp.github.io/CoreNLP/
+    #Start a Stanford CoreNLP server as follows:
+    #java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port 9000 -timeout 50000
+    aaa = StanfordCoreNLP('http://localhost')
 
+    def get_stanford_annotations(self,text, port=9000,
+                                 annotators='tokenize,ssplit,pos,lemma,depparse,parse'):
+        output = self.aaa.annotate(text, properties={
+            "timeout": "10000",
+            "ssplit.newlineIsSentenceBreak": "two",
+            'annotators': annotators,
+            'outputFormat': 'json'
+        })
+        return output
 
+    """
+    Returns the shortest path between a subject and an object (Dependency tree parsing)
+    else returns -1
+    """
+    def getShortestPath(self, jsonObj):
+
+        list = decode(jsonObj)
+
+        sub = list['sub']
+        obj = list['obj']
+        snippet = list['evidences'][0]['snippet']
+        sentences = self.sentenceTokenizer(snippet)
+
+        objFoundInSnippet = False
+        subFoundInSnippet = False
+        shortestPath = -1
+        shortestPaths = []
+
+        if(self.subInText(jsonObj) == 0 or self.objInText(jsonObj) == 0):
+            return -1
+
+        for sentence in sentences:
+            try:
+                if(self.objInSentence(sentence,obj)==1):
+                    # The code expects the document to contains exactly one sentence.
+                    document = sentence
+                    #print('document: {0}'.format(document))
+
+                    # Parse the text
+                    annotations = self.get_stanford_annotations(document, port=9000,
+                                                           annotators='tokenize,ssplit,pos,lemma,depparse')
+                    list = decode(annotations)
+                    tokens = list['sentences'][0]['tokens']
+                    #print(tokens)
+
+                    # Load Stanford CoreNLP's dependency tree into a networkx graph
+                    edges = []
+                    dependencies = {}
+                    for edge in list['sentences'][0]['basicDependencies']:
+                        edges.append((edge['governor'], edge['dependent']))
+                        dependencies[(min(edge['governor'], edge['dependent']),
+                                      max(edge['governor'], edge['dependent']))] = edge
+
+                    graph = nx.Graph(edges)
+                    # pprint(dependencies)
+                    # print('edges: {0}'.format(edges))
+
+                    # Find the shortest path
+                    token1 = ['he', 'she', 'them', 'us'] #the subject
+                    for name in sub.split():
+                        token1.append(name.lower())
+                    token2 = [] #the object
+                    for name in obj.split():
+                        token2.append(name)
+                    for token in tokens:
+                        if(token['originalText'].lower() in token1):
+                            token1_index = token['index']
+                        elif(token['originalText'] in token1):
+                            token1_index = token['index']
+
+                        if token['originalText'] in token2:
+                            token2_index = token['index']
+
+                    path = nx.shortest_path(graph, source=token1_index, target=token2_index)
+                    #print('path: {0}'.format(path))
+                    shortestPaths.append(len(path))
+
+                    for token_id in path:
+                        token = tokens[token_id - 1]
+                        token_text = token['originalText']
+                        #print('Node {0}\ttoken_text: {1}'.format(token_id, token_text))
+            except Exception as e:
+                print(e)
+
+        if(len(shortestPaths) == 0):
+            shortestPath = -1
+        else:
+            shortestPath = min(shortestPaths)
+
+        return shortestPath
     """
     If the subject of the sentence appears in the text snippet, it's the subject in a sentence, 
     and in the next sentence appears a PRON that is in a relationship with the object, than we might have a long distance?
@@ -962,9 +1056,11 @@ jsn = "{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj
 
 print(test.checkSnippetSentencesForAGivenWindow(jsn, 30))
 
-#print(test.getNamedEntities('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
-#print(test.getConstituencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
-#print(test.getDependencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+print(test.getShortestPath(jsn))
+
+# print(test.getNamedEntities('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+# print(test.getConstituencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
+# print(test.getDependencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
 #print(test.getAnnotation('Bourgelat was born at Lyon.'))
 
 
