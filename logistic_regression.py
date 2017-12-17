@@ -12,7 +12,7 @@ feature_name = list()
 '''
 Parsing arff file
 '''
-with open('relevant_resources/weka_institutions.arff', 'r') as f:
+with open('relevant_resources/place_new.arff', 'r') as f:
     raw_data_rows = f.read()
     arff_header = raw_data_rows[raw_data_rows.find('@ATTRIBUTE'):raw_data_rows.find('@DATA') - 2]
     arff_header= arff_header.split('\n')
