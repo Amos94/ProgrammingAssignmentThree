@@ -302,67 +302,76 @@ class ProgrammingAssignmentThree():
     """
     def documentFeatureExtraction(self, path):
 
-        readFile = open(path, "r", encoding='utf-8')
-        writeFile = open(path.replace(".json","")+"_features_extracted.json", "a", encoding='utf-8')
-        for element in readFile:
-            list = decode(element, encoding="utf-8")
-            #with this we also solve the not yet resolved IDs (that couldn't be found by Google Knowledge Graph)
-            if('/m/' in list['sub'] and '/m/' in list['obj']):
-                featuresExtracted = self.featureExtraction(list['evidences'][0]['snippet'])
-                listOfSentencesAndTheirFeatures = []
-                for key, value in featuresExtracted.items():
-                    featuresList = []
-                    for k,v in value.items():
-                        featuresList.append(json.dumps({str(k):str(v)}))
-                    listOfSentencesAndTheirFeatures.append(json.dumps({'sentence':str(key), 'features':featuresList}))
-                toWrite = json.dumps({'pred':list['pred'],
-                                      'sub':list['sub'],
-                                      'obj':list['obj'],
-                                      'evidences':list['evidences'],
-                                      'judgments':list['judgments'],
-                                      'nlp':json.dumps(listOfSentencesAndTheirFeatures)})
-                writeFile.write(toWrite+"\n")
-
-        def documentFeatureExtraction2(self, path):
             readFile = open(path, "r", encoding='utf-8')
-            writeFile = open(path.replace(".json", "") + "_features_extracted.json", "a", encoding='utf-8')
-            writeFile2 = open('relevant_resources/weka.arff', 'a')
-            rows = []
+            writeFile = open(path.replace(".json","")+"_features_extracted.json", "a", encoding='utf-8')
             for element in readFile:
                 list = decode(element, encoding="utf-8")
-                features = dict()
-                feature_list = []
-                # with this we also solve the not yet resolved IDs (that couldn't be found by Google Knowledge Graph)
-                if ('/m/' not in list['sub'] and '/m/' not in list['obj']):
-                    features['isNameInUrl'] = self.isNameInUrl(element)
-                    feature_list.append(features['isNameInUrl'])
-                    features['subInText'] = self.subInText(element)
-                    feature_list.append(features['subInText'])
-                    features['objInText'] = self.objInText(element)
-                    feature_list.append(features['objInText'])
-                    features[
-                        'numberOfTheSentenceInSnippetWhereSubIsPresent'] = self.numberOfTheSentenceInSnippetWhereSubIsPresent(
-                        element)
-                    feature_list.append(features['numberOfTheSentenceInSnippetWhereSubIsPresent'][-1])
-                    features[
-                        'numberOfTheSentenceInSnippetWhereObjIsPresent'] = self.numberOfTheSentenceInSnippetWhereObjIsPresent(
-                        element)
-                    feature_list.append(features['numberOfTheSentenceInSnippetWhereObjIsPresent'][-1])
-                    features['numberOfSentences'] = self.getNumberOfSentences(list['evidences'][0]['snippet'])
-                    feature_list.append(features['numberOfSentences'])
-                    features[
-                        'isTheSubjectInADirectRelationshipWithTheObject'] = self.isTheSubjectInADirectRelationshipWithTheObject(
-                        list['sub'], list['obj'], list['evidences'][0]['snippet'])
-                    print(features['isTheSubjectInADirectRelationshipWithTheObject'])
-                    feature_list.append(features['isTheSubjectInADirectRelationshipWithTheObject'])
-                    '''if list in self.negativeExamples:
-                        feature_list.append(False)
-                    else:
-                        feature_list.append(True)'''
-                    feature_list.append(True)
-                    feature_list = [str(f) for f in feature_list]
+                #with this we also solve the not yet resolved IDs (that couldn't be found by Google Knowledge Graph)
+                if('/m/' in list['sub'] and '/m/' in list['obj']):
+                    featuresExtracted = self.featureExtraction(list['evidences'][0]['snippet'])
+                    listOfSentencesAndTheirFeatures = []
+                    for key, value in featuresExtracted.items():
+                        featuresList = []
+                        for k,v in value.items():
+                            featuresList.append(json.dumps({str(k):str(v)}))
+                        listOfSentencesAndTheirFeatures.append(json.dumps({'sentence':str(key), 'features':featuresList}))
+                    toWrite = json.dumps({'pred':list['pred'],
+                                          'sub':list['sub'],
+                                          'obj':list['obj'],
+                                          'evidences':list['evidences'],
+                                          'judgments':list['judgments'],
+                                          'nlp':json.dumps(listOfSentencesAndTheirFeatures)})
+                    writeFile.write(toWrite+"\n")
 
-                    writeFile2.write(','.join(feature_list) + '\n')
+    def documentFeatureExtraction2(self, path):
+        readFile = open(path, "r", encoding='utf-8')
+        writeFile = open(path.replace(".json", "") + "_features_extracted.json", "a", encoding='utf-8')
+        writeFile2 = open('relevant_resources/weka_place_negatives.arff', 'a')
+        rows = []
+        for element in readFile:
+            list = decode(element, encoding="utf-8")
+            features = dict()
+            feature_list = []
+            # with this we also solve the not yet resolved IDs (that couldn't be found by Google Knowledge Graph)
+            if ('/m/' not in list['sub'] and '/m/' not in list['obj']):
+                features['isNameInUrl'] = self.isNameInUrl(element)
+                feature_list.append(features['isNameInUrl'])
+                features['subInText'] = self.subInText(element)
+                feature_list.append(features['subInText'])
+                features['objInText'] = self.objInText(element)
+                feature_list.append(features['objInText'])
+                features[
+                    'numberOfTheSentenceInSnippetWhereSubIsPresent'] = self.numberOfTheSentenceInSnippetWhereSubIsPresent(
+                    element)
+                feature_list.append(features['numberOfTheSentenceInSnippetWhereSubIsPresent'][-1])
+                features[
+                    'numberOfTheSentenceInSnippetWhereObjIsPresent'] = self.numberOfTheSentenceInSnippetWhereObjIsPresent(
+                    element)
+                feature_list.append(features['numberOfTheSentenceInSnippetWhereObjIsPresent'][-1])
+                features['numberOfSentences'] = self.getNumberOfSentences(list['evidences'][0]['snippet'])
+                feature_list.append(features['numberOfSentences'])
+                features[
+                    'isTheSubjectInADirectRelationshipWithTheObject'] = self.isTheSubjectInADirectRelationshipWithTheObject(
+                    list['sub'], list['obj'], list['evidences'][0]['snippet'])
+                print(features['isTheSubjectInADirectRelationshipWithTheObject'])
+                feature_list.append(features['isTheSubjectInADirectRelationshipWithTheObject'])
+
+                #last 2 I worked on
+                features['checkSnippetSentencesForAGivenWindow'] = self.checkSnippetSentencesForAGivenWindow(element, 30)
+                feature_list.append(features['checkSnippetSentencesForAGivenWindow'])
+
+                features['getShortestPath'] = self.getShortestPath(element)
+                feature_list.append(features['getShortestPath'])
+
+
+                '''if list in self.negativeExamples:
+                    feature_list.append(False)
+                else:
+                    feature_list.append(True)'''
+                feature_list.append(False)
+                feature_list = [str(f) for f in feature_list]
+
+                writeFile2.write(','.join(feature_list) + '\n')
 
 
     """
@@ -688,7 +697,9 @@ class ProgrammingAssignmentThree():
         subIndex = -1
         #print(sub.split())
         for name in sub.split():
-                if(name in sentence):
+                if(name in sentenceList):
+                    print(name)
+                    print(sentence)
                     subIndex = sentenceList.index(name)
 
         #print(subIndex)
@@ -747,7 +758,7 @@ class ProgrammingAssignmentThree():
         subIndex = -1
         # print(sub.split())
         for name in obj.split():
-            if (name in sentence):
+            if (name in sentenceList):
                 subIndex = sentenceList.index(name)
 
         # print(subIndex)
@@ -1029,7 +1040,7 @@ class ProgrammingAssignmentThree():
 test = ProgrammingAssignmentThree("20130403-institution.json")
 #test.queryGoogleKnowledgeGraph("/m/02v_brk")
 #test.sortExamples()
-#test.documentFeatureExtraction2('relevant_resources/negative_examples_place_nornalized.json')
+test.documentFeatureExtraction2('relevant_resources/negative_examples_place_nornalized.json')
 
 #test.idToName()
 #test.reviewTheSet("negative_examples_place_nornalized.json")
@@ -1056,7 +1067,7 @@ print(test.ldrHeuristic("{'pred': '/people/person/place_of_birth', 'sub': 'Claud
 """
 
 
-jsn = "{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"
+#jsn = "{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj': 'Lyon', 'evidences': [{'url': 'http://en.wikipedia.org/wiki/Claude_Bourgelat', 'snippet': 'Bourgelat was born at Lyon. He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter. Other dates claimed for the establishment of the Lyon College, the first veterinary school in the world, are 1760 and 1761.'}], 'judgments': [{'rater': '17082466750572480596', 'judgment': 'yes'}, {'rater': '11595942516201422884', 'judgment': 'yes'}, {'rater': '16169597761094238409', 'judgment': 'yes'}, {'rater': '16651790297630307764', 'judgment': 'yes'}, {'rater': '11658533362118524115', 'judgment': 'yes'}]}"
 
 # for sentence in test.getSentencesFromSnippet(test.getSnippet(jsn)):
 #     print(test.windowDefinedSub(sentence=sentence, sub=test.getSubject(jsn), window=10))
@@ -1064,8 +1075,8 @@ jsn = "{'pred': '/people/person/place_of_birth', 'sub': 'Claude Bourgelat', 'obj
 #     print(test.isSubInObjWindow(test.getSubject(jsn), test.getObject(jsn), 10, sentence))
 #     print(test.isObjInSubWindow(test.getSubject(jsn), test.getObject(jsn), 10, sentence))
 
-print(test.checkSnippetSentencesForAGivenWindow(jsn, 30))
-print(test.getShortestPath(jsn))
+#print(test.checkSnippetSentencesForAGivenWindow(jsn, 30))
+#print(test.getShortestPath(jsn))
 
 # print(test.getNamedEntities('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
 # print(test.getConstituencyParsing('He was the founder of veterinary colleges at Lyon in 1762, as well as an authority on horse management, and often consulted on the matter.'))
