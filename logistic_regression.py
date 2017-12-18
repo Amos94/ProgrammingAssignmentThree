@@ -1,8 +1,7 @@
-import numpy as np
+import sys
 import pandas as pd
 import sklearn
 from sklearn.linear_model import LogisticRegression
-from matplotlib import pyplot as plt
 from random import shuffle
 
 
@@ -12,7 +11,7 @@ feature_name = list()
 '''
 Parsing arff file
 '''
-with open('relevant_resources/place_new.arff', 'r') as f:
+with open(sys.argv[1], 'r') as f:
     raw_data_rows = f.read()
     arff_header = raw_data_rows[raw_data_rows.find('@ATTRIBUTE'):raw_data_rows.find('@DATA') - 2]
     arff_header= arff_header.split('\n')
@@ -52,7 +51,7 @@ for i in range(10):
     y_pred = clf.predict(X_test)
     tn, fp, fn, tp = sklearn.metrics.confusion_matrix(y_true, y_pred).ravel()
     print('Confusion matrix for fold', i + 1)
-    print(tp, '\t', fp, '\n', fp, '\t', tn)
+    print(tp, '\t', fn, '\n', fp, '\t', tn)
     accuracy = (tp + tn) / (tn + fp + fn + tp)
     print('Accuracy:', str(round((accuracy * 100),3)) + '%') 
     print(100 * '*')
