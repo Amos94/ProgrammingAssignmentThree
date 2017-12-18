@@ -36,6 +36,9 @@ class ProgrammingAssignmentThree():
     negativeElementsResolved = [] #No more ids
     positiveAndNegativeExamples = {} #Keep in this dictionary positive and negative examples, {JSON OBJECT:"yes"}, {JSON OBJECT: "no"}
     parser = spacy.load('en_core_web_sm')
+    #Download the stanford corenlp from:https://stanfordnlp.github.io/CoreNLP/history.html (version 3.7.0  	2016-10-31)
+    #Unzip it
+    #add the folder inside relevant resources folder
     scnlp = StanfordCoreNLP(r'relevant_resources/stanford-corenlp-full-2016-10-31', lang='en')
 
     """
