@@ -67,7 +67,7 @@ class ProgrammingAssignmentThree():
         """Python client calling Knowledge Graph Search API."""
 
 
-        api_key = "AIzaSyDumYWiT0CbjcJ3i2lkMwZa29ULPhyyGDo"
+        api_key = "APIKEY"
         service_url = 'https://kgsearch.googleapis.com/v1/entities:search?ids=' + str(entity) + "&indent=True" + "&key=" + api_key
         url = service_url
         response = json.loads(urllib.urlopen(url).read())
